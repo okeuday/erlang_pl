@@ -38,52 +38,76 @@
 # DAMAGE.
 #
 
-package Erlang::Exception;
+package Erlang::OtpErlangList;
 use strict;
 use warnings;
 
+use constant TAG_NIL_EXT => 106;
+use constant TAG_LIST_EXT => 108;
+
+require Erlang::OutputException;
+
 use overload
-    '""'     => sub { $_[0]->as_string },
-    'bool'   => sub { 1 },
-    fallback => 1;
+    '""'     => sub { $_[0]->as_string };
 
 sub new
 {
     my $class = shift;
-    my ($message) = @_;
+    my (@value, $improper) = @_;
+    if (! defined $improper)
+    {
+        $improper = 0;
+    }
     my $self = bless {
-        traceback => _traceback(),
-        message => $message,
+        value => @value,
+        improper => $improper,
     }, $class;
     return $self;
+}
+
+sub binary
+{
+    my $self = shift;
+    my @value = $self->{value};
+    my $ref = ref(@value);
+    if ($ref eq 'ARRAY' || $ref eq '')
+    {
+        my $length = scalar(@value);
+        if ($length == 0)
+        {
+            return chr(TAG_NIL_EXT);
+        }
+        elsif ($self->{improper})
+        {
+            my $contents = '';
+            for my $element (@value)
+            {
+                $contents .= _term_to_binary($element);
+            }
+            return pack('CN', TAG_LIST_EXT, $length - 1) . $contents;
+        }
+        else
+        {
+            my $contents = '';
+            for my $element (@value)
+            {
+                $contents .= _term_to_binary($element);
+            }
+            return pack('CN', TAG_LIST_EXT, $length) . $contents .
+                   chr(TAG_NIL_EXT);
+        }
+    }
+    else
+    {
+        die Erlang::OutputException->new('unknown list type');
+    }
 }
 
 sub as_string
 {
     my $self = shift;
-    my $name = ref($self);
-    my $output = $self->{traceback};
-    if (defined $self->{message})
-    {
-        $output = "$output$name: $self->{message}\n";
-    }
-    else
-    {
-        $output = "$output$name\n";
-    }
-    return $output;
-}
-
-sub _traceback
-{
-    # provide a Pythonic traceback
-    my $result = '';
-    my $frame_i = 1;
-    while (my ($package, $filename, $line) = caller($frame_i++))
-    {
-        $result = "  File \"$filename\", line $line, in $package\n$result";
-    }
-    return "Traceback (most recent call last):\n$result";
+    my $class = ref($self);
+    return "$class($self->{value},$self->{improper})";
 }
 
 1;

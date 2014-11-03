@@ -38,52 +38,61 @@
 # DAMAGE.
 #
 
-package Erlang::Exception;
+package Erlang::OtpErlangBinary;
 use strict;
 use warnings;
 
+use constant TAG_BIT_BINARY_EXT => 77;
+use constant TAG_BINARY_EXT => 109;
+
+require Erlang::OutputException;
+
 use overload
-    '""'     => sub { $_[0]->as_string },
-    'bool'   => sub { 1 },
-    fallback => 1;
+    '""'     => sub { $_[0]->as_string };
 
 sub new
 {
     my $class = shift;
-    my ($message) = @_;
+    my ($value, $bits) = @_;
+    if (! defined $bits)
+    {
+        $bits = 8;
+    }
     my $self = bless {
-        traceback => _traceback(),
-        message => $message,
+        value => $value,
+        bits => $bits,
     }, $class;
     return $self;
+}
+
+sub binary
+{
+    my $self = shift;
+    my $value = $self->{value};
+    if (ref($value) eq '')
+    {
+        my $size = length($value);
+        my $bits = $self->{bits};
+        if ($bits != 8)
+        {
+            return pack('CNC', TAG_BIT_BINARY_EXT, $size, $bits) . $value;
+        }
+        else
+        {
+            return pack('CN', TAG_BINARY_EXT, $size) . $value;
+        }
+    }
+    else
+    {
+        die Erlang::OutputException->new('unknown binary type');
+    }
 }
 
 sub as_string
 {
     my $self = shift;
-    my $name = ref($self);
-    my $output = $self->{traceback};
-    if (defined $self->{message})
-    {
-        $output = "$output$name: $self->{message}\n";
-    }
-    else
-    {
-        $output = "$output$name\n";
-    }
-    return $output;
-}
-
-sub _traceback
-{
-    # provide a Pythonic traceback
-    my $result = '';
-    my $frame_i = 1;
-    while (my ($package, $filename, $line) = caller($frame_i++))
-    {
-        $result = "  File \"$filename\", line $line, in $package\n$result";
-    }
-    return "Traceback (most recent call last):\n$result";
+    my $class = ref($self);
+    return "$class($self->{value},$self->{bits})";
 }
 
 1;

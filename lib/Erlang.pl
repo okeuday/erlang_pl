@@ -75,7 +75,12 @@ use constant TAG_ATOM_UTF8_EXT => 118;
 use constant TAG_SMALL_ATOM_UTF8_EXT => 119;
 
 require Erlang::OtpErlangAtom;
-
+require Erlang::OtpErlangList;
+require Erlang::OtpErlangBinary;
+require Erlang::OtpErlangFunction;
+require Erlang::OtpErlangReference;
+require Erlang::OtpErlangPort;
+require Erlang::OtpErlangPid;
 require Erlang::ParseException;
 require Erlang::InputException;
 require Erlang::OutputException;
@@ -177,8 +182,8 @@ sub _binary_to_term
         $i += 4;
         my $bits = ord(substr($data, $i, 1));
         $i += 1;
-        return ($i + $j, 0);
-               #Erlang::OtpErlangBinary->new(substr($data, $i, $j), $bits));
+        return ($i + $j,
+                Erlang::OtpErlangBinary->new(substr($data, $i, $j), $bits));
     }
     elsif ($tag == TAG_ATOM_CACHE_REF)
     {
@@ -216,13 +221,11 @@ sub _binary_to_term
         $i += 1;
         if ($tag == TAG_REFERENCE_EXT)
         {
-            return ($i, 0);
-                   #Erlang::OtpErlangReference->new($node, $id, $creation));
+            return ($i, Erlang::OtpErlangReference->new($node, $id, $creation));
         }
         elsif ($tag == TAG_PORT_EXT)
         {
-            return ($i, 0);
-                   #Erlang::OtpErlangPort->new($node, $id, $creation));
+            return ($i, Erlang::OtpErlangPort->new($node, $id, $creation));
         }
     }
     elsif ($tag == TAG_PID_EXT)
@@ -234,8 +237,7 @@ sub _binary_to_term
         $i += 4;
         my $creation = substr($data, $i, 1);
         $i += 1;
-        return ($i, 0);
-               #Erlang::OtpErlangPid->new($node, $id, $serial, $creation));
+        return ($i, Erlang::OtpErlangPid->new($node, $id, $serial, $creation));
     }
     elsif ($tag == TAG_SMALL_TUPLE_EXT || $tag == TAG_LARGE_TUPLE_EXT)
     {
@@ -254,8 +256,7 @@ sub _binary_to_term
     }
     elsif ($tag == TAG_NIL_EXT)
     {
-        return ($i, 0);
-               #Erlang::OtpErlangList->new(()));
+        return ($i, Erlang::OtpErlangList->new(()));
     }
     elsif ($tag == TAG_STRING_EXT)
     {
@@ -275,21 +276,19 @@ sub _binary_to_term
             scalar($tail->{value}) != 0)
         {
             push(@tmp, $tail);
-            return ($i, 0);
-                   #Erlang::OtpErlangList->new(@tmp, 1));
+            return ($i, Erlang::OtpErlangList->new(@tmp, 1));
         }
         else
         {
-            return ($i, 0);
-                   #Erlang::OtpErlangList->new(@tmp));
+            return ($i, Erlang::OtpErlangList->new(@tmp));
         }
     }
     elsif ($tag == TAG_BINARY_EXT)
     {
         my ($j) = unpack('N', substr($data, $i, 4));
         $i += 4;
-        return ($i + $j, 0);
-               #Erlang::OtpErlangBinary->new(substr($data, $i, $j), 8));
+        return ($i + $j,
+                Erlang::OtpErlangBinary->new(substr($data, $i, $j), 8));
     }
     elsif ($tag == TAG_SMALL_BIG_EXT || $tag == TAG_LARGE_BIG_EXT)
     {
@@ -325,8 +324,8 @@ sub _binary_to_term
     elsif ($tag == TAG_NEW_FUN_EXT)
     {
         my ($size) = unpack('N', substr($data, $i, 4));
-        return ($i + $size, 0);
-              #Erlang::OtpErlangFunction->new($tag, substr($data, $i, $size)));
+        return ($i + $size,
+                Erlang::OtpErlangFunction->new($tag, substr($data, $i, $size)));
     }
     elsif ($tag == TAG_EXPORT_EXT)
     {
@@ -342,10 +341,9 @@ sub _binary_to_term
         $i += 1;
         my $arity = ord(substr($data, $i, 1));
         $i += 1;
-        return ($i, 0);
-               #Erlang::OtpErlangFunction->new($tag,
-               #                               substr($data, $old_i,
-               #                                      $i - $old_i)));
+        return ($i, Erlang::OtpErlangFunction->new($tag,
+                                                   substr($data, $old_i,
+                                                          $i - $old_i)));
     }
     elsif ($tag == TAG_NEW_REFERENCE_EXT)
     {
@@ -357,8 +355,8 @@ sub _binary_to_term
         my $creation = substr($data, $i, 1);
         $i += 1;
         my $id = substr($data, $i, $j);
-        return ($i + $j, 0);
-               #Erlang::OtpErlangReference->new($node, $id, $creation));
+        return ($i + $j,
+                Erlang::OtpErlangReference->new($node, $id, $creation));
     }
     elsif ($tag == TAG_SMALL_ATOM_EXT)
     {
@@ -371,7 +369,7 @@ sub _binary_to_term
     {
         my ($arity) = unpack('N', substr($data, $i, 4));
         $i += 4;
-        my @pairs = ();
+        my %pairs = ();
         if ($arity > 0)
         {
             my $key;
@@ -380,11 +378,10 @@ sub _binary_to_term
             {
                 ($i, $key) = _binary_to_term($i, $data);
                 ($i, $value) = _binary_to_term($i, $data);
-                push(@pairs, ($key, $value));
+                $pairs{$key} = $value;
             }
         }
-        return ($i, 0);
-               #Erlang::OtpErlangMap->new(@pairs));
+        return ($i, %pairs);
     }
     elsif ($tag == TAG_FUN_EXT)
     {
@@ -401,10 +398,9 @@ sub _binary_to_term
         ($i, $uniq) = _binary_to_integer($i, $data);
         my @free;
         ($i, @free) = _binary_to_term_sequence($i, $numfree, $data);
-        return ($i, 0);
-               #Erlang::OtpErlangFunction->new($tag,
-               #                               substr($data, $old_i,
-               #                                      $i - $old_i)));
+        return ($i, Erlang::OtpErlangFunction->new($tag,
+                                                   substr($data, $old_i,
+                                                          $i - $old_i)));
     }
     elsif ($tag == TAG_ATOM_UTF8_EXT)
     {
@@ -503,8 +499,7 @@ sub _binary_to_pid
         $i += 4;
         my $creation = substr($data, $i, 1);
         $i += 1;
-        return ($i, 0);
-               #Erlang::OtpErlangPid->new($node, $id, $serial, $creation));
+        return ($i, Erlang::OtpErlangPid->new($node, $id, $serial, $creation));
     }
     else
     {
@@ -556,7 +551,11 @@ sub _term_to_binary
     my $ref = ref($term);
     if ($ref eq '')
     {
-        if ($term =~ /^[+-]?\d+$/)
+        if (scalar($term) ne $term) # list
+        {
+            return _tuple_to_binary($term);
+        }
+        elsif ($term =~ /^[+-]?\d+$/)
         {
             return _integer_to_binary($term);
         }

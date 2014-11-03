@@ -38,52 +38,41 @@
 # DAMAGE.
 #
 
-package Erlang::Exception;
+package Erlang::OtpErlangPid;
 use strict;
 use warnings;
 
+use constant TAG_PID_EXT => 103;
+
 use overload
-    '""'     => sub { $_[0]->as_string },
-    'bool'   => sub { 1 },
-    fallback => 1;
+    '""'     => sub { $_[0]->as_string };
 
 sub new
 {
     my $class = shift;
-    my ($message) = @_;
+    my ($node, $id, $serial, $creation) = @_;
     my $self = bless {
-        traceback => _traceback(),
-        message => $message,
+        node => $node,
+        id => $id,
+        serial => $serial,
+        creation => $creation,
     }, $class;
     return $self;
+}
+
+sub binary
+{
+    my $self = shift;
+    return chr(TAG_PID_EXT) . $self->{node}->binary() .
+           $self->{id} . $self->{serial} . $self->{creation};
 }
 
 sub as_string
 {
     my $self = shift;
-    my $name = ref($self);
-    my $output = $self->{traceback};
-    if (defined $self->{message})
-    {
-        $output = "$output$name: $self->{message}\n";
-    }
-    else
-    {
-        $output = "$output$name\n";
-    }
-    return $output;
-}
-
-sub _traceback
-{
-    # provide a Pythonic traceback
-    my $result = '';
-    my $frame_i = 1;
-    while (my ($package, $filename, $line) = caller($frame_i++))
-    {
-        $result = "  File \"$filename\", line $line, in $package\n$result";
-    }
-    return "Traceback (most recent call last):\n$result";
+    my $class = ref($self);
+    return "$class($self->{node},$self->{id},$self->{serial}," .
+                  "$self->{creation})";
 }
 
 1;
