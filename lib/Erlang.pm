@@ -47,7 +47,7 @@ use 5.010;
 $Erlang::VERSION = '0.1';
 
 require Compress::Zlib;
-#use bignum;
+# bigint/bignum caused slowness without enough features to be useful
 use POSIX;
 
 # tag values here http://www.erlang.org/doc/apps/erts/erl_ext_dist.html
@@ -87,6 +87,7 @@ require Erlang::OtpErlangFunction;
 require Erlang::OtpErlangReference;
 require Erlang::OtpErlangPort;
 require Erlang::OtpErlangPid;
+require Erlang::OtpErlangString;
 require Erlang::ParseException;
 require Erlang::InputException;
 require Erlang::OutputException;
@@ -147,14 +148,18 @@ sub term_to_binary
     {
         if (ref($compressed) ne '')
         {
-            $compressed = 6;
-        }
-        if ($compressed < 0 || $compressed > 9)
-        {
             die Erlang::InputException->new('compressed in [0..9]');
         }
-        my $data_compressed = Compress::Zlib->compress($data_uncompressed,
+        if ($compressed !~ /^[0-9]$/)
+        {
+            $compressed = 6;
+        }
+        my $data_compressed = Compress::Zlib::compress($data_uncompressed,
                                                        $compressed);
+        if (! defined($data_compressed))
+        {
+            die Erlang::InputException->new('compression failed');
+        }
         my $size_uncompressed = length($data_uncompressed);
         return pack('CCN', TAG_VERSION, TAG_COMPRESSED_ZLIB,
                     $size_uncompressed) . $data_compressed;
@@ -272,18 +277,18 @@ sub _binary_to_term
     {
         my ($arity) = unpack('N', substr($data, $i, 4));
         $i += 4;
-        my @tmp;
-        ($i, @tmp) = _binary_to_term_sequence($i, $arity, $data);
+        my $tmp;
+        ($i, $tmp) = _binary_to_term_sequence($i, $arity, $data);
         my $tail;
         ($i, $tail) = _binary_to_term($i, $data);
         if (ref($tail) ne 'Erlang::OtpErlangList' || $tail->count() != 0)
         {
-            push(@tmp, $tail);
-            return ($i, Erlang::OtpErlangList->new(\@tmp, 1));
+            push(@$tmp, $tail);
+            return ($i, Erlang::OtpErlangList->new($tmp, 1));
         }
         else
         {
-            return ($i, Erlang::OtpErlangList->new(\@tmp));
+            return ($i, Erlang::OtpErlangList->new($tmp));
         }
     }
     elsif ($tag == TAG_BINARY_EXT)
@@ -399,8 +404,8 @@ sub _binary_to_term
         ($i, $index) = _binary_to_integer($i, $data);
         my $uniq;
         ($i, $uniq) = _binary_to_integer($i, $data);
-        my @free;
-        ($i, @free) = _binary_to_term_sequence($i, $numfree, $data);
+        my $free;
+        ($i, $free) = _binary_to_term_sequence($i, $numfree, $data);
         return ($i, Erlang::OtpErlangFunction->new($tag,
                                                    substr($data, $old_i,
                                                           $i - $old_i)));
@@ -429,8 +434,9 @@ sub _binary_to_term
         $i += 4;
         my $data_compressed = substr($data, $i);
         my $j = length($data_compressed);
-        my $data_uncompressed = Compress::Zlib->uncompress($data_compressed);
-        if ($size_uncompressed != length($data_uncompressed))
+        my $data_uncompressed = Compress::Zlib::uncompress($data_compressed);
+        if (! defined($data_uncompressed) ||
+            $size_uncompressed != length($data_uncompressed))
         {
             die Erlang::ParseException->new('compression corrupt');
         }
@@ -461,7 +467,7 @@ sub _binary_to_term_sequence
             push(@sequence, $element);
         }
     }
-    return ($i, @sequence);
+    return ($i, \@sequence);
 }
 
 sub _binary_to_integer
@@ -590,7 +596,7 @@ sub _term_to_binary
            $ref eq 'Erlang::OtpErlangReference' ||
            $ref eq 'Erlang::OtpErlangPort' ||
            $ref eq 'Erlang::OtpErlangPid' ||
-           $ref eq 'Erlang::OtpErlangMap')
+           $ref eq 'Erlang::OtpErlangString')
     {
         return $term->binary();
     }
@@ -626,7 +632,8 @@ sub _string_to_binary
 
 sub _tuple_to_binary
 {
-    my (@term) = @_;
+    my ($term_ref) = @_;
+    my @term = @$term_ref;
     my $arity = scalar(@term);
     my $term_packed = '';
     for my $element (@term)

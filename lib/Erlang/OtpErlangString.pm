@@ -38,12 +38,9 @@
 # DAMAGE.
 #
 
-package Erlang::OtpErlangList;
+package Erlang::OtpErlangString;
 use strict;
 use warnings;
-
-use constant TAG_NIL_EXT => 106;
-use constant TAG_LIST_EXT => 108;
 
 require Erlang;
 require Erlang::OutputException;
@@ -54,14 +51,9 @@ use overload
 sub new
 {
     my $class = shift;
-    my ($value_ref, $improper) = @_;
-    if (! defined($improper))
-    {
-        $improper = 0;
-    }
+    my ($value) = @_;
     my $self = bless {
-        value => $value_ref,
-        improper => $improper,
+        value => $value,
     }, $class;
     return $self;
 }
@@ -69,38 +61,14 @@ sub new
 sub binary
 {
     my $self = shift;
-    my $value_ref = $self->{value};
-    if (ref($value_ref) eq 'ARRAY')
+    my $value = $self->{value};
+    if (ref($value) eq '')
     {
-        my @value = @$value_ref;
-        my $length = scalar(@value);
-        if ($length == 0)
-        {
-            return chr(TAG_NIL_EXT);
-        }
-        elsif ($self->{improper})
-        {
-            my $contents = '';
-            for my $element (@value)
-            {
-                $contents .= Erlang::_term_to_binary($element);
-            }
-            return pack('CN', TAG_LIST_EXT, $length - 1) . $contents;
-        }
-        else
-        {
-            my $contents = '';
-            for my $element (@value)
-            {
-                $contents .= Erlang::_term_to_binary($element);
-            }
-            return pack('CN', TAG_LIST_EXT, $length) . $contents .
-                   chr(TAG_NIL_EXT);
-        }
+        return Erlang::_string_to_binary($value);
     }
     else
     {
-        die Erlang::OutputException->new('unknown list type');
+        die Erlang::OutputException->new('unknown string type');
     }
 }
 
@@ -108,16 +76,7 @@ sub as_string
 {
     my $self = shift;
     my $class = ref($self);
-    my $value_ref = $self->{value};
-    my $list = join(',', @$value_ref);
-    return "$class([$list],$self->{improper})";
-}
-
-sub count
-{
-    my $self = shift;
-    my $value_ref = $self->{value};
-    return scalar(@$value_ref);
+    return "$class($self->{value})";
 }
 
 1;

@@ -9,6 +9,7 @@ lib/Erlang/OtpErlangList.pm
 lib/Erlang/OtpErlangPid.pm
 lib/Erlang/OtpErlangPort.pm
 lib/Erlang/OtpErlangReference.pm
+lib/Erlang/OtpErlangString.pm
 lib/Erlang/OutputException.pm
 lib/Erlang/ParseException.pm
 MANIFEST			This list of files
