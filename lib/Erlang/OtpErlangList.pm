@@ -53,13 +53,13 @@ use overload
 sub new
 {
     my $class = shift;
-    my (@value, $improper) = @_;
-    if (! defined $improper)
+    my ($value_ref, $improper) = @_;
+    if (! defined($improper))
     {
         $improper = 0;
     }
     my $self = bless {
-        value => @value,
+        value => $value_ref,
         improper => $improper,
     }, $class;
     return $self;
@@ -68,10 +68,10 @@ sub new
 sub binary
 {
     my $self = shift;
-    my @value = $self->{value};
-    my $ref = ref(@value);
-    if ($ref eq 'ARRAY' || $ref eq '')
+    my $value_ref = $self->{value};
+    if (ref($value_ref) eq 'ARRAY')
     {
+        my @value = @$value_ref;
         my $length = scalar(@value);
         if ($length == 0)
         {
@@ -107,7 +107,16 @@ sub as_string
 {
     my $self = shift;
     my $class = ref($self);
-    return "$class($self->{value},$self->{improper})";
+    my $value_ref = $self->{value};
+    my $list = join(',', @$value_ref);
+    return "$class([$list],$self->{improper})";
+}
+
+sub count
+{
+    my $self = shift;
+    my $value_ref = $self->{value};
+    return scalar(@$value_ref);
 }
 
 1;

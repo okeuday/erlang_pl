@@ -54,7 +54,7 @@ sub new
 {
     my $class = shift;
     my ($value, $bits) = @_;
-    if (! defined $bits)
+    if (! defined($bits))
     {
         $bits = 8;
     }

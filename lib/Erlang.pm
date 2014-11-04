@@ -44,6 +44,12 @@ use strict;
 use warnings;
 use 5.010;
 
+$Erlang::VERSION = '0.1';
+
+require Compress::Zlib;
+#use bignum;
+use POSIX;
+
 # tag values here http://www.erlang.org/doc/apps/erts/erl_ext_dist.html
 use constant TAG_VERSION => 131;
 use constant TAG_COMPRESSED_ZLIB => 80;
@@ -85,14 +91,10 @@ require Erlang::ParseException;
 require Erlang::InputException;
 require Erlang::OutputException;
 
-require Compress::Zlib;
-#use bignum; # http://bloodgate.com/perl/bigint/bench_timeline.html#intro
-use POSIX;
-
 sub binary_to_term
 {
     my ($data) = @_;
-    if (ref($data) ne '')
+    if (! defined($data) || ref($data) ne '')
     {
         die Erlang::ParseException->new('not bytes input');
     }
@@ -105,7 +107,7 @@ sub binary_to_term
     {
         die Erlang::ParseException->new('invalid version');
     }
-    eval
+    my $result = eval
     {
         my ($i, $term) = _binary_to_term(1, $data);
         if ($i != $size)
@@ -130,13 +132,14 @@ sub binary_to_term
             die Erlang::ParseException->new('missing data');
         }
     }
+    return $result;
 }
 
 sub term_to_binary
 {
     my ($term, $compressed) = @_;
     my $data_uncompressed = _term_to_binary($term);
-    if (! defined $compressed)
+    if (! defined($compressed))
     {
         return chr(TAG_VERSION) . $data_uncompressed;
     }
@@ -160,6 +163,7 @@ sub term_to_binary
 
 sub _binary_to_term
 {
+    no warnings 'all';
     my ($i, $data) = @_;
     my $tag = ord(substr($data, $i, 1));
     $i += 1;
@@ -256,7 +260,7 @@ sub _binary_to_term
     }
     elsif ($tag == TAG_NIL_EXT)
     {
-        return ($i, Erlang::OtpErlangList->new(()));
+        return ($i, Erlang::OtpErlangList->new([]));
     }
     elsif ($tag == TAG_STRING_EXT)
     {
@@ -272,15 +276,14 @@ sub _binary_to_term
         ($i, @tmp) = _binary_to_term_sequence($i, $arity, $data);
         my $tail;
         ($i, $tail) = _binary_to_term($i, $data);
-        if (ref($tail) ne 'Erlang::OtpErlangList' ||
-            scalar($tail->{value}) != 0)
+        if (ref($tail) ne 'Erlang::OtpErlangList' || $tail->count() != 0)
         {
             push(@tmp, $tail);
-            return ($i, Erlang::OtpErlangList->new(@tmp, 1));
+            return ($i, Erlang::OtpErlangList->new(\@tmp, 1));
         }
         else
         {
-            return ($i, Erlang::OtpErlangList->new(@tmp));
+            return ($i, Erlang::OtpErlangList->new(\@tmp));
         }
     }
     elsif ($tag == TAG_BINARY_EXT)
@@ -308,7 +311,7 @@ sub _binary_to_term
         if ($j > 0)
         {
             my $digit;
-            for my $bignum_index (0 .. $j)
+            for my $bignum_index (0 .. ($j - 1))
             {
                 $digit = ord(substr($data, $i + $j - $bignum_index, 1));
                 $bignum = $bignum * 256 + $digit;
@@ -374,7 +377,7 @@ sub _binary_to_term
         {
             my $key;
             my $value;
-            for my $arity_index (0 .. $arity)
+            for my $arity_index (0 .. ($arity - 1))
             {
                 ($i, $key) = _binary_to_term($i, $data);
                 ($i, $value) = _binary_to_term($i, $data);
@@ -446,12 +449,13 @@ sub _binary_to_term
 
 sub _binary_to_term_sequence
 {
+    no warnings 'all';
     my ($i, $arity, $data) = @_;
     my @sequence = ();
     if ($arity > 0)
     {
         my $element;
-        for my $arity_index (0 .. $arity)
+        for my $arity_index (0 .. ($arity - 1))
         {
             ($i, $element) = _binary_to_term($i, $data);
             push(@sequence, $element);
@@ -462,6 +466,7 @@ sub _binary_to_term_sequence
 
 sub _binary_to_integer
 {
+    no warnings 'all';
     my ($i, $data) = @_;
     my $tag = ord(substr($data, $i, 1));
     $i += 1;
@@ -486,6 +491,7 @@ sub _binary_to_integer
 
 sub _binary_to_pid
 {
+    no warnings 'all';
     my ($i, $data) = @_;
     my $tag = ord(substr($data, $i, 1));
     $i += 1;
@@ -509,6 +515,7 @@ sub _binary_to_pid
 
 sub _binary_to_atom
 {
+    no warnings 'all';
     my ($i, $data) = @_;
     my $tag = ord(substr($data, $i, 1));
     if ($tag == TAG_ATOM_EXT)
@@ -670,7 +677,7 @@ sub _bignum_to_binary
     my $l = $sign;
     if ($size > 0)
     {
-        for my $byte (0 .. $size)
+        for my $byte (0 .. ($size - 1))
         {
             $l .= chr($bignum & 255);
             $bignum = $bignum >> 8;
@@ -724,3 +731,4 @@ sub _hash_to_binary
     return pack('CN', TAG_MAP_EXT, $arity) . $term_packed;
 }
 
+1;

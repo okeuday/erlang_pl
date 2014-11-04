@@ -63,7 +63,7 @@ sub as_string
     my $self = shift;
     my $name = ref($self);
     my $output = $self->{traceback};
-    if (defined $self->{message})
+    if (defined($self->{message}))
     {
         $output = "$output$name: $self->{message}\n";
     }

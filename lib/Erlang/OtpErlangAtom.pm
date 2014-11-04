@@ -57,7 +57,7 @@ sub new
 {
     my $class = shift;
     my ($value, $utf8) = @_;
-    if (! defined $utf8)
+    if (! defined($utf8))
     {
         $utf8 = 0;
     }

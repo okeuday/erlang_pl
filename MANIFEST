@@ -1,0 +1,15 @@
+build.pl
+lib/Erlang.pm
+lib/Erlang/Exception.pm
+lib/Erlang/InputException.pm
+lib/Erlang/OtpErlangAtom.pm
+lib/Erlang/OtpErlangBinary.pm
+lib/Erlang/OtpErlangFunction.pm
+lib/Erlang/OtpErlangList.pm
+lib/Erlang/OtpErlangPid.pm
+lib/Erlang/OtpErlangPort.pm
+lib/Erlang/OtpErlangReference.pm
+lib/Erlang/OutputException.pm
+lib/Erlang/ParseException.pm
+MANIFEST			This list of files
+t/Erlang.t
