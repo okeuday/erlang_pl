@@ -120,11 +120,8 @@ sub binary_to_term
     my $e = $@;
     if ($e)
     {
-        if ($e->isa('Erlang::ParseException'))
-        {
-            die $e;
-        }
-        elsif ($e->isa('Erlang::InputException'))
+        if ($e->isa('Erlang::ParseException') ||
+            $e->isa('Erlang::InputException'))
         {
             die $e;
         }
@@ -223,7 +220,8 @@ sub _binary_to_term
     }
     elsif ($tag == TAG_REFERENCE_EXT || $tag == TAG_PORT_EXT)
     {
-        my ($i, $node) = _binary_to_atom($i, $data);
+        my $node;
+        ($i, $node) = _binary_to_atom($i, $data);
         my $id = substr($data, $i, 4);
         $i += 4;
         my $creation = substr($data, $i, 1);
@@ -239,7 +237,8 @@ sub _binary_to_term
     }
     elsif ($tag == TAG_PID_EXT)
     {
-        my ($i, $node) = _binary_to_atom($i, $data);
+        my $node;
+        ($i, $node) = _binary_to_atom($i, $data);
         my $id = substr($data, $i, 4);
         $i += 4;
         my $serial = substr($data, $i, 4);
@@ -389,7 +388,7 @@ sub _binary_to_term
                 $pairs{$key} = $value;
             }
         }
-        return ($i, %pairs);
+        return ($i, \%pairs);
     }
     elsif ($tag == TAG_FUN_EXT)
     {
@@ -524,6 +523,7 @@ sub _binary_to_atom
     no warnings 'all';
     my ($i, $data) = @_;
     my $tag = ord(substr($data, $i, 1));
+    $i += 1;
     if ($tag == TAG_ATOM_EXT)
     {
         my ($j) = unpack('n', substr($data, $i, 2));
