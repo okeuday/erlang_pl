@@ -6,6 +6,7 @@ perl:
   - "5.14"
   - "5.12"
   - "5.10"
+install: echo "not using cpanm!"
 script: perl build.pl && ./Build test
 branches:
   only:
