@@ -92,6 +92,8 @@ require Erlang::ParseException;
 require Erlang::InputException;
 require Erlang::OutputException;
 
+# core functionality
+
 sub binary_to_term
 {
     my ($data) = @_;
@@ -166,6 +168,8 @@ sub term_to_binary
                     $size_uncompressed) . $data_compressed;
     }
 }
+
+# binary_to_term implementation functions
 
 sub _binary_to_term
 {
@@ -474,6 +478,8 @@ sub _binary_to_term_sequence
     return ($i, \@sequence);
 }
 
+# (binary_to_term Erlang term primitive type functions)
+
 sub _binary_to_integer
 {
     no warnings 'all';
@@ -563,6 +569,8 @@ sub _binary_to_atom
     }
 }
 
+# term_to_binary implementation functions
+
 sub _term_to_binary
 {
     my ($term) = @_;
@@ -610,6 +618,8 @@ sub _term_to_binary
         die Erlang::OutputException->new('unknown perl type');
     }
 }
+
+# (term_to_binary Erlang term composite type functions)
 
 sub _string_to_binary
 {
@@ -662,6 +672,28 @@ sub _tuple_to_binary
         die Erlang::OutputException->new('uint32 overflow');
     }
 }
+
+sub _hash_to_binary
+{
+    my (%term) = @_;
+    my $term_packed = '';
+    my $length = 0;
+    while (my ($key, $value) = each(%term))
+    {
+        $term_packed .= _term_to_binary($key) . _term_to_binary($value);
+        $length++;
+    }
+    if ($length <= 4294967295)
+    {
+        return pack('CN', TAG_MAP_EXT, $length) . $term_packed;
+    }
+    else
+    {
+        die Erlang::OutputException->new('uint32 overflow');
+    }
+}
+
+# (term_to_binary Erlang term primitive type functions)
 
 sub _integer_to_binary
 {
@@ -724,26 +756,6 @@ sub _float_to_binary
     else
     {
         return chr(TAG_NEW_FLOAT_EXT) . pack('d', $term);
-    }
-}
-
-sub _hash_to_binary
-{
-    my (%term) = @_;
-    my $term_packed = '';
-    my $length = 0;
-    while (my ($key, $value) = each(%term))
-    {
-        $term_packed .= _term_to_binary($key) . _term_to_binary($value);
-        $length++;
-    }
-    if ($length <= 4294967295)
-    {
-        return pack('CN', TAG_MAP_EXT, $length) . $term_packed;
-    }
-    else
-    {
-        die Erlang::OutputException->new('uint32 overflow');
     }
 }
 
