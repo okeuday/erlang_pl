@@ -355,7 +355,7 @@ sub _binary_to_term
             die Erlang::ParseException->new('invalid small integer tag');
         }
         $i += 1;
-        my $length = ord(substr($data, $i, 1));
+        my $arity = ord(substr($data, $i, 1));
         $i += 1;
         return ($i, Erlang::OtpErlangFunction->new($tag,
                                                    substr($data, $old_i,
