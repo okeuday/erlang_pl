@@ -9,7 +9,7 @@ require Module::Build;
 
 my $builder = Module::Build->new(
     module_name         => 'Erlang',
-    license             => 'bsd',
+    license             => 'mit',
     dist_abstract       => 'Erlang Binary Term Format for Perl',
     dist_author         => 'Michael Truog <mjtruog@gmail.com>',
     build_requires => {
