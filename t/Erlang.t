@@ -4,7 +4,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2014-2017 Michael Truog <mjtruog at gmail dot com>
+# Copyright (c) 2014-2018 Michael Truog <mjtruog at gmail dot com>
 # Copyright (c) 2009-2013, Dmitry Vasiliev <dima@hlabs.org>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
@@ -582,12 +582,13 @@ sub is_exception
     is("\x83k\0\1\0", Erlang::term_to_binary("\0"));
     is("\x83k\0\4test", Erlang::term_to_binary('test'));
 }
-# EncodeTestCase, test_term_to_binary_boolean
+# EncodeTestCase, test_term_to_binary_predefined_atoms
 {
     is("\x83s\4true",
        Erlang::term_to_binary(Erlang::OtpErlangAtom->new('true')));
     is("\x83s\5false",
        Erlang::term_to_binary(Erlang::OtpErlangAtom->new('false')));
+    is("\x83s\x09undefined", Erlang::term_to_binary(undef));
 }
 # EncodeTestCase, test_term_to_binary_short_integer
 {
