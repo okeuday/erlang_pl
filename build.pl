@@ -11,7 +11,7 @@ my $builder = Module::Build->new(
     module_name         => 'Erlang',
     license             => 'mit',
     dist_abstract       => 'Erlang Binary Term Format for Perl',
-    dist_author         => 'Michael Truog <mjtruog@gmail.com>',
+    dist_author         => 'Michael Truog <mjtruog@protonmail.com>',
     build_requires => {
         'Compress::Zlib' => '>= 2.020',
         'POSIX' => '>= 1.17',
