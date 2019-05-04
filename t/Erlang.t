@@ -4,7 +4,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2014-2018 Michael Truog <mjtruog at protonmail dot com>
+# Copyright (c) 2014-2019 Michael Truog <mjtruog at protonmail dot com>
 # Copyright (c) 2009-2013, Dmitry Vasiliev <dima@hlabs.org>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
@@ -425,6 +425,66 @@ sub is_exception
               Erlang::binary_to_term("\x83o\0\0\0\6\0\1\2\3\4\5\6"));
     is_deeply(-6618611909121,
               Erlang::binary_to_term("\x83o\0\0\0\6\1\1\2\3\4\5\6"));
+}
+# DecodeTestCase, test_binary_to_term_pid
+{
+    my $pid_old_binary = (
+        "\x83\x67\x64\x00\x0D\x6E\x6F\x6E\x6F\x64\x65\x40\x6E\x6F" .
+        "\x68\x6F\x73\x74\x00\x00\x00\x4E\x00\x00\x00\x00\x00"
+    );
+    my $pid_old = Erlang::binary_to_term($pid_old_binary);
+    isa_ok($pid_old, 'Erlang::OtpErlangPid');
+    is("\x83gs\rnonode\x40nohost\x00\x00\x00N" .
+       "\x00\x00\x00\x00\x00", Erlang::term_to_binary($pid_old));
+    my $pid_new_binary = (
+        "\x83\x58\x64\x00\x0D\x6E\x6F\x6E\x6F\x64\x65\x40\x6E\x6F\x68" .
+        "\x6F\x73\x74\x00\x00\x00\x4E\x00\x00\x00\x00\x00\x00\x00\x00"
+    );
+    my $pid_new = Erlang::binary_to_term($pid_new_binary);
+    isa_ok($pid_new, 'Erlang::OtpErlangPid');
+    is("\x83Xs\rnonode\x40nohost\x00\x00\x00N" .
+       "\x00\x00\x00\x00\x00\x00\x00\x00", Erlang::term_to_binary($pid_new));
+}
+# DecodeTestCase, test_binary_to_term_port
+{
+    my $port_old_binary = (
+        "\x83\x66\x64\x00\x0D\x6E\x6F\x6E\x6F\x64\x65\x40\x6E\x6F\x68" .
+        "\x6F\x73\x74\x00\x00\x00\x06\x00"
+    );
+    my $port_old = Erlang::binary_to_term($port_old_binary);
+    isa_ok($port_old, 'Erlang::OtpErlangPort');
+    is("\x83fs\rnonode\x40nohost\x00\x00\x00\x06\x00",
+       Erlang::term_to_binary($port_old));
+    my $port_new_binary = (
+        "\x83\x59\x64\x00\x0D\x6E\x6F\x6E\x6F\x64\x65\x40\x6E\x6F\x68" .
+        "\x6F\x73\x74\x00\x00\x00\x06\x00\x00\x00\x00"
+    );
+    my $port_new = Erlang::binary_to_term($port_new_binary);
+    isa_ok($port_new, 'Erlang::OtpErlangPort');
+    is("\x83Ys\rnonode\x40nohost\x00\x00\x00\x06\x00\x00\x00\x00",
+       Erlang::term_to_binary($port_new));
+}
+# DecodeTestCase, test_binary_to_term_ref
+{
+    my $ref_new_binary = (
+        "\x83\x72\x00\x03\x64\x00\x0D\x6E\x6F\x6E\x6F\x64\x65\x40\x6E" .
+        "\x6F\x68\x6F\x73\x74\x00\x00\x03\xE8\x4E\xE7\x68\x00\x02\xA4" .
+        "\xC8\x53\x40"
+    );
+    my $ref_new = Erlang::binary_to_term($ref_new_binary);
+    isa_ok($ref_new, 'Erlang::OtpErlangReference');
+    is("\x83r\x00\x03s\rnonode\x40nohost\x00\x00\x03\xe8" .
+       "N\xe7h\x00\x02\xa4\xc8S@", Erlang::term_to_binary($ref_new));
+    my $ref_newer_binary = (
+        "\x83\x5A\x00\x03\x64\x00\x0D\x6E\x6F\x6E\x6F\x64\x65\x40\x6E" .
+        "\x6F\x68\x6F\x73\x74\x00\x00\x00\x00\x00\x01\xAC\x03\xC7\x00" .
+        "\x00\x04\xBB\xB2\xCA\xEE"
+    );
+    my $ref_newer = Erlang::binary_to_term($ref_newer_binary);
+    isa_ok($ref_newer, 'Erlang::OtpErlangReference');
+    is("\x83Z\x00\x03s\rnonode\x40nohost\x00\x00\x00\x00\x00" .
+       "\x01\xac\x03\xc7\x00\x00\x04\xbb\xb2\xca\xee",
+       Erlang::term_to_binary($ref_newer));
 }
 # DecodeTestCase, test_binary_to_term_compressed_term
 {
