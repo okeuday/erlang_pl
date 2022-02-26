@@ -4,7 +4,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2014-2019 Michael Truog <mjtruog at protonmail dot com>
+# Copyright (c) 2014-2022 Michael Truog <mjtruog at protonmail dot com>
 # Copyright (c) 2009-2013, Dmitry Vasiliev <dima@hlabs.org>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
@@ -71,7 +71,7 @@ sub is_exception
     my $atom1 = Erlang::OtpErlangAtom->new('test');
     isa_ok($atom1, 'Erlang::OtpErlangAtom');
     is_deeply(Erlang::OtpErlangAtom->new('test'), $atom1);
-    is('Erlang::OtpErlangAtom(test,0)', "$atom1");
+    is('Erlang::OtpErlangAtom(test,1)', "$atom1");
     my $atom2 = Erlang::OtpErlangAtom->new('test2');
     my $atom1_new = Erlang::OtpErlangAtom->new('test');
     ok("$atom1" ne "$atom2");
@@ -153,33 +153,41 @@ sub is_exception
 {
     is_exception(sub
         {
-            Erlang::binary_to_term("\x83d");
+            Erlang::binary_to_term("\x83v");
         }, 'Erlang::ParseException');
     is_exception(sub
         {
-            Erlang::binary_to_term("\x83d\0");
+            Erlang::binary_to_term("\x83v\0");
         }, 'Erlang::ParseException');
     is_exception(sub
         {
-            Erlang::binary_to_term("\x83d\0\1");
+            Erlang::binary_to_term("\x83v\0\1");
         }, 'Erlang::ParseException');
     is_deeply(Erlang::OtpErlangAtom->new(''),
+              Erlang::binary_to_term("\x83v\0\0"));
+    is_deeply(Erlang::OtpErlangAtom->new(''),
+              Erlang::binary_to_term("\x83w\0"));
+    is_deeply(Erlang::OtpErlangAtom->new('', 0),
               Erlang::binary_to_term("\x83d\0\0"));
-    is_deeply(Erlang::OtpErlangAtom->new(''),
+    is_deeply(Erlang::OtpErlangAtom->new('', 0),
               Erlang::binary_to_term("\x83s\0"));
     is_deeply(Erlang::OtpErlangAtom->new('test'),
-              Erlang::binary_to_term("\x83d\0\4test"));
+              Erlang::binary_to_term("\x83v\0\4test"));
     is_deeply(Erlang::OtpErlangAtom->new('test'),
+              Erlang::binary_to_term("\x83w\4test"));
+    is_deeply(Erlang::OtpErlangAtom->new('test', 0),
+              Erlang::binary_to_term("\x83d\0\4test"));
+    is_deeply(Erlang::OtpErlangAtom->new('test', 0),
               Erlang::binary_to_term("\x83s\4test"));
 }
 # DecodeTestCase, test_binary_to_term_predefined_atoms
 {
     is_deeply(Erlang::OtpErlangAtom->new('true'),
-              Erlang::binary_to_term("\x83s\4true"));
+              Erlang::binary_to_term("\x83w\4true"));
     is_deeply(Erlang::OtpErlangAtom->new('false'),
-              Erlang::binary_to_term("\x83s\5false"));
+              Erlang::binary_to_term("\x83w\5false"));
     is_deeply(Erlang::OtpErlangAtom->new('undefined'),
-              Erlang::binary_to_term("\x83d\0\11undefined"));
+              Erlang::binary_to_term("\x83v\0\11undefined"));
 }
 # DecodeTestCase, test_binary_to_term_empty_list
 {
@@ -216,7 +224,6 @@ sub is_exception
                   Erlang::OtpErlangList->new([]),
                   Erlang::OtpErlangList->new([])]),
               Erlang::binary_to_term("\x83l\0\0\0\2jjj"));
-    
 }
 # DecodeTestCase, test_binary_to_term_improper_list
 {
@@ -224,7 +231,7 @@ sub is_exception
         {
             Erlang::binary_to_term("\x83l\0\0\0\0k");
         }, 'Erlang::ParseException');
-    my $lst = Erlang::binary_to_term("\x83l\0\0\0\1jd\0\4tail");
+    my $lst = Erlang::binary_to_term("\x83l\0\0\0\1jv\0\4tail");
     isa_ok($lst, 'Erlang::OtpErlangList');
     my $lst_value_ref = $lst->{value};
     my @lst_value = @$lst_value_ref;
@@ -605,9 +612,9 @@ sub is_exception
 }
 # EncodeTestCase, test_term_to_binary_atom
 {
-    is("\x83s\0",
+    is("\x83w\0",
        Erlang::term_to_binary(Erlang::OtpErlangAtom->new('')));
-    is("\x83s\4test",
+    is("\x83w\4test",
        Erlang::term_to_binary(Erlang::OtpErlangAtom->new('test')));
 }
 # EncodeTestCase, test_term_to_binary_string_basic
@@ -644,11 +651,11 @@ sub is_exception
 }
 # EncodeTestCase, test_term_to_binary_predefined_atoms
 {
-    is("\x83s\4true",
+    is("\x83w\4true",
        Erlang::term_to_binary(Erlang::OtpErlangAtom->new('true')));
-    is("\x83s\5false",
+    is("\x83w\5false",
        Erlang::term_to_binary(Erlang::OtpErlangAtom->new('false')));
-    is("\x83s\x09undefined", Erlang::term_to_binary(undef));
+    is("\x83w\x09undefined", Erlang::term_to_binary(undef));
 }
 # EncodeTestCase, test_term_to_binary_short_integer
 {

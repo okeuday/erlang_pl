@@ -10,7 +10,7 @@ require Module::Build;
 my $builder = Module::Build->new(
     module_name         => 'Erlang',
     license             => 'mit',
-    dist_abstract       => 'Erlang Binary Term Format for Perl',
+    dist_abstract       => 'Erlang External Term Format for Perl',
     dist_author         => 'Michael Truog <mjtruog@protonmail.com>',
     build_requires => {
         'Compress::Zlib' => '>= 2.020',
