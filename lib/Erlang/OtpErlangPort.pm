@@ -53,13 +53,13 @@ sub binary
 {
     my $self = shift;
     my $id_size = length($self->{id});
-    my $creation_size = length($self->{creation});
     if ($id_size == 8)
     {
         return chr(TAG_V4_PORT_EXT) .
                $self->{node}->binary() . $self->{id} . $self->{creation};
     }
-    elsif ($creation_size == 4)
+    my $creation_size = length($self->{creation});
+    if ($creation_size == 4)
     {
         return chr(TAG_NEW_PORT_EXT) .
                $self->{node}->binary() . $self->{id} . $self->{creation};
