@@ -4,7 +4,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2014-2022 Michael Truog <mjtruog at protonmail dot com>
+# Copyright (c) 2014-2023 Michael Truog <mjtruog at protonmail dot com>
 # Copyright (c) 2009-2013, Dmitry Vasiliev <dima@hlabs.org>
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
@@ -36,11 +36,11 @@ require_ok('Erlang');
 require_ok('Erlang::OtpErlangAtom');
 require_ok('Erlang::OtpErlangList');
 require_ok('Erlang::OtpErlangBinary');
-require_ok('Erlang::OtpErlangFunction');
-require_ok('Erlang::OtpErlangReference');
-require_ok('Erlang::OtpErlangPort');
-require_ok('Erlang::OtpErlangPid');
 require_ok('Erlang::OtpErlangString');
+require_ok('Erlang::OtpErlangPid');
+require_ok('Erlang::OtpErlangPort');
+require_ok('Erlang::OtpErlangReference');
+require_ok('Erlang::OtpErlangFunction');
 require_ok('Erlang::ParseException');
 require_ok('Erlang::InputException');
 require_ok('Erlang::OutputException');
@@ -433,6 +433,49 @@ sub is_exception
     is_deeply(-6618611909121,
               Erlang::binary_to_term("\x83o\0\0\0\6\1\1\2\3\4\5\6"));
 }
+# DecodeTestCase, test_binary_to_term_map
+{
+    is_exception(sub
+        {
+            Erlang::binary_to_term("\x83t");
+        }, 'Erlang::ParseException');
+    is_exception(sub
+        {
+            Erlang::binary_to_term("\x83t\x00");
+        }, 'Erlang::ParseException');
+    is_exception(sub
+        {
+            Erlang::binary_to_term("\x83t\x00\x00");
+        }, 'Erlang::ParseException');
+    is_exception(sub
+        {
+            Erlang::binary_to_term("\x83t\x00\x00\x00");
+        }, 'Erlang::ParseException');
+    is_exception(sub
+        {
+            Erlang::binary_to_term("\x83t\x00\x00\x00\x01");
+        }, 'Erlang::ParseException');
+    my %map0 = ();
+    my $map0_check = Erlang::binary_to_term("\x83t\x00\x00\x00\x00");
+    is(ref($map0_check), 'HASH');
+    is_deeply(\%map0, $map0_check);
+    my %map1 = (
+        'a' => 1
+    );
+    my $map1_binary = (
+        "\x83\x74\x00\x00\x00\x01\x6B\x00\x01\x61\x61\x01"
+    );
+    is_deeply(\%map1, Erlang::binary_to_term($map1_binary));
+    # only able to compare Perl hash of size 1 due to being (randomly) unordered
+    my %map2 = (
+        'everything' => Erlang::OtpErlangBinary->new("\xA8", 6)
+    );
+    my $map2_binary = (
+        "\x83\x74\x00\x00\x00\x01\x6B\x00\x0A\x65\x76\x65\x72\x79" .
+        "\x74\x68\x69\x6E\x67\x4D\x00\x00\x00\x01\x06\xA8"
+    );
+    is_deeply(\%map2, Erlang::binary_to_term($map2_binary));
+}
 # DecodeTestCase, test_binary_to_term_pid
 {
     my $pid_old_binary = (
@@ -470,6 +513,13 @@ sub is_exception
     isa_ok($port_new, 'Erlang::OtpErlangPort');
     is("\x83Ys\rnonode\x40nohost\x00\x00\x00\x06\x00\x00\x00\x00",
        Erlang::term_to_binary($port_new));
+    my $port_v4_binary = (
+        "\x83\x78\x77\x0D\x6E\x6F\x6E\x6F\x64\x65\x40\x6E\x6F\x68\x6F" .
+        "\x73\x74\x00\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00"
+    );
+    my $port_v4 = Erlang::binary_to_term($port_v4_binary);
+    isa_ok($port_v4, 'Erlang::OtpErlangPort');
+    is($port_v4_binary, Erlang::term_to_binary($port_v4));
 }
 # DecodeTestCase, test_binary_to_term_ref
 {
@@ -683,6 +733,23 @@ sub is_exception
     is("\x83F\xbf\xe0\0\0\0\0\0\0", Erlang::term_to_binary(-0.5));
     is("\x83F@\t!\xfbM\x12\xd8J", Erlang::term_to_binary(3.1415926));
     is("\x83F\xc0\t!\xfbM\x12\xd8J", Erlang::term_to_binary(-3.1415926));
+}
+# EncodeTestCase, test_term_to_binary_map
+{
+    my %map0 = ();
+    is(Erlang::term_to_binary(\%map0), "\x83t\x00\x00\x00\x00");
+    my %map1 = (
+        'a' => 1
+    );
+    is(Erlang::term_to_binary(\%map1),
+       "\x83\x74\x00\x00\x00\x01\x6B\x00\x01\x61\x61\x01");
+    # only able to compare Perl hash of size 1 due to being (randomly) unordered
+    my %map2 = (
+        'everything' => Erlang::OtpErlangBinary->new("\xA8", 6)
+    );
+    is(Erlang::term_to_binary(\%map2),
+       "\x83\x74\x00\x00\x00\x01\x6B\x00\x0A\x65\x76\x65\x72\x79" .
+       "\x74\x68\x69\x6E\x67\x4D\x00\x00\x00\x01\x06\xA8");
 }
 # EncodeTestCase, test_term_to_compressed_term
 {
